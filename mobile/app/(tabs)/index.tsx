@@ -1,98 +1,62 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+// MapLibre import (Assuming installed: npm i @maplibre/maplibre-react-native)
+import MapLibreGL from '@maplibre/maplibre-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+export default function MapScreen() {
+  const insets = useSafeAreaInsets();
 
-export default function HomeScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <View className="flex-1 bg-primary relative">
+      {/* Minimal Upper Header */}
+      <View 
+        className="px-6 flex-row items-center justify-between pb-4"
+        style={{ paddingTop: insets.top + 16 }}
+      >
+        <View className="flex-row items-center">
+            <View className="w-10 h-10 bg-white/20 rounded-xl items-center justify-center mr-3">
+                <Ionicons name="bus" size={24} color="#FFF" />
+            </View>
+            <Text className="text-white text-xl font-bold">Komiota</Text>
+        </View>
+        <Ionicons name="search" size={24} color="#FFF" />
+      </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      {/* Main Content Card with rounded top corners */}
+      <View className="flex-1 bg-card rounded-t-[40px] overflow-hidden shadow-2xl relative">
+        
+        {/* MapLibre Map integration */}
+        <MapLibreGL.MapView
+          style={StyleSheet.absoluteFillObject}
+          logoEnabled={false}
+          attributionEnabled={false}
+          styleURL={MapLibreGL.StyleURL.Street}
+        >
+          {/* Initial coordinate: Cebu City roughly */}
+          <MapLibreGL.Camera
+            defaultSettings={{
+              centerCoordinate: [123.8854, 10.3157],
+              zoomLevel: 13,
+            }}
+          />
+        </MapLibreGL.MapView>
+
+        {/* Floating Action Buttons */}
+        <View className="absolute bottom-8 right-6 space-y-4">
+          
+          {/* Current Location Button */}
+          <Pressable className="w-14 h-14 bg-white rounded-full items-center justify-center shadow-lg border border-gray-100 active:opacity-80">
+            <Ionicons name="locate" size={26} color="#7B39ED" />
+          </Pressable>
+
+          {/* Add Stop Button */}
+          <Pressable className="w-14 h-14 bg-primary rounded-full items-center justify-center shadow-lg active:opacity-80 mb-2">
+            <Ionicons name="add" size={32} color="#FFF" />
+          </Pressable>
+
+        </View>
+      </View>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
