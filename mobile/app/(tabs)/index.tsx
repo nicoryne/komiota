@@ -31,7 +31,25 @@ export default function MapScreen() {
           style={StyleSheet.absoluteFillObject}
           logoEnabled={false}
           attributionEnabled={false}
-          styleURL={MapLibreGL.StyleURL.Street}
+          mapStyle={JSON.stringify({
+            version: 8,
+            sources: {
+              osm: {
+                type: 'raster',
+                tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                tileSize: 256,
+                attribution: '&copy; OpenStreetMap Contributors',
+                maxzoom: 19,
+              },
+            },
+            layers: [
+              {
+                id: 'osm',
+                type: 'raster',
+                source: 'osm',
+              },
+            ],
+          })}
         >
           {/* Initial coordinate: Cebu City roughly */}
           <MapLibreGL.Camera
