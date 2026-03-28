@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Q } from '@nozbe/watermelondb';
 import { database } from '../db';
-import UserBookmark from '../db/models/UserBookmark';
+import UserBookmark from '../db/models/user-bookmarks';
 
 /**
  * Observes user bookmarks from local WatermelonDB with add/remove mutations.

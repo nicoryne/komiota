@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { database } from '../db';
-import Route from '../db/models/Route';
+import Route from '../db/models/route';
 
 /**
  * Observes all routes from the local WatermelonDB for reactive offline rendering.

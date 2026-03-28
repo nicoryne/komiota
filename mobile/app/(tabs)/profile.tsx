@@ -1,4 +1,5 @@
 import React, { useCallback } from 'react';
+import { useRouter } from 'expo-router';
 import {
   View,
   Text,
@@ -6,6 +7,7 @@ import {
   Pressable,
   Switch,
   Alert,
+  ActivityIndicator,
   useColorScheme as useRNColorScheme,
   Appearance,
 } from 'react-native';
@@ -15,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/use-auth';
 import { useProfile } from '@/hooks/use-profile';
 import { useGamification } from '@/hooks/use-gamification';
+import { useImagePicker } from '@/hooks/use-image-picker';
 import { Avatar } from '@/components/ui/avatar';
 import { colors } from '@/lib/colors';
 
@@ -252,9 +255,27 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const colorScheme = useRNColorScheme();
   const isDark = colorScheme === 'dark';
+  const router = useRouter();
   const { user, signOut } = useAuth();
-  const { profile, isLoading } = useProfile(user?.id);
+  const { profile, isLoading, updateProfile } = useProfile(user?.id);
   const { userBadges } = useGamification(user?.id);
+  const { pickAndUploadImage, isUploading: isAvatarUploading } = useImagePicker();
+
+  const handleAvatarPress = async () => {
+    const url = await pickAndUploadImage({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.6,
+    }, 'avatars');
+    
+    if (url) {
+      try {
+        await updateProfile({ avatar_url: url });
+      } catch (e: any) {
+        Alert.alert('Update Failed', e.message || 'Failed to save new avatar to your profile.');
+      }
+    }
+  };
 
   const handleThemeToggle = useCallback((value: boolean) => {
     Appearance.setColorScheme(value ? 'dark' : 'light');
@@ -304,17 +325,39 @@ export default function ProfileScreen() {
           style={{ alignItems: 'center', paddingTop: insets.top + 20, paddingBottom: 24 }}
         >
           {/* Avatar with glow */}
-          <View
-            style={{
+          <Pressable
+            onPress={handleAvatarPress}
+            disabled={isAvatarUploading}
+            style={({ pressed }) => ({
+              opacity: pressed ? 0.8 : 1,
               shadowColor: colors.primary.DEFAULT,
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 0.25,
               shadowRadius: 16,
               elevation: 8,
-            }}
+              position: 'relative',
+              alignItems: 'center',
+              justifyContent: 'center',
+            })}
           >
             <Avatar uri={profile.avatar_url} name={profile.username} size="lg" />
-          </View>
+            
+            {isAvatarUploading && (
+              <View 
+                className="absolute inset-0 bg-black/40 rounded-full items-center justify-center"
+              >
+                <ActivityIndicator color="#fff" />
+              </View>
+            )}
+            
+            {/* Edit icon badge */}
+            <View 
+              className="absolute bottom-0 right-0 w-8 h-8 rounded-full items-center justify-center"
+              style={{ backgroundColor: colors.primary.DEFAULT, borderWidth: 2, borderColor: isDark ? colors.background.dark : colors.background.DEFAULT }}
+            >
+              <Ionicons name="camera" size={14} color="#fff" />
+            </View>
+          </Pressable>
 
           {/* Name */}
           <Text
@@ -438,6 +481,20 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
 
+        {/* ═══ MODERATION ═══ */}
+        {profile && (profile.role === 'admin' || profile.role === 'moderator') && (
+          <SettingsSection title="Moderation Tools" isDark={isDark} delay={320}>
+            <SettingsRow
+              icon="shield-checkmark"
+              iconColor={colors.status.warning}
+              label="Review Pending Stops"
+              subtitle="Approve or reject community submissions"
+              isDark={isDark}
+              onPress={() => router.push('/(settings)/moderation' as any)}
+            />
+          </SettingsSection>
+        )}
+
         {/* ═══ PREFERENCES ═══ */}
         <SettingsSection title="Preferences" isDark={isDark} delay={350}>
           <SettingsRow
@@ -463,7 +520,7 @@ export default function ProfileScreen() {
             label="Notifications"
             subtitle="Push & in-app alerts"
             isDark={isDark}
-            onPress={() => {}}
+            onPress={() => router.push('/(settings)/notifications')}
           />
           <Divider isDark={isDark} />
           <SettingsRow
@@ -471,7 +528,7 @@ export default function ProfileScreen() {
             label="Language"
             subtitle="English"
             isDark={isDark}
-            onPress={() => {}}
+            onPress={() => router.push('/(settings)/language')}
           />
         </SettingsSection>
 
@@ -481,21 +538,21 @@ export default function ProfileScreen() {
             icon="shield-checkmark-outline"
             label="Privacy & Security"
             isDark={isDark}
-            onPress={() => {}}
+            onPress={() => router.push('/(settings)/privacy')}
           />
           <Divider isDark={isDark} />
           <SettingsRow
             icon="help-circle-outline"
             label="Help & Support"
             isDark={isDark}
-            onPress={() => {}}
+            onPress={() => router.push('/(settings)/help')}
           />
           <Divider isDark={isDark} />
           <SettingsRow
             icon="document-text-outline"
             label="Terms of Service"
             isDark={isDark}
-            onPress={() => {}}
+            onPress={() => router.push('/(settings)/terms')}
           />
           <Divider isDark={isDark} />
           <SettingsRow
@@ -503,7 +560,7 @@ export default function ProfileScreen() {
             label="About Komiota"
             subtitle="v1.0.0"
             isDark={isDark}
-            onPress={() => {}}
+            onPress={() => router.push('/(settings)/about')}
           />
         </SettingsSection>
 

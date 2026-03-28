@@ -8,6 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Keyboard,
+  Alert,
 } from 'react-native';
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -41,6 +42,8 @@ import { useTrip } from '@/hooks/use-trip';
 import { useBusStops } from '@/hooks/use-bus-stops';
 import { RouteBottomSheet } from '@/components/route-bottom-sheet';
 import { TripCompleteModal } from '@/components/trip-complete-modal';
+import { AddBusStopBottomSheet } from '@/components/add-bus-stop-bottom-sheet';
+import * as Haptics from 'expo-haptics';
 
 // ─── Types ───────────────────────────────────────────────────
 type FlowState = 'idle' | 'preview' | 'boarding' | 'transit' | 'complete';
@@ -52,14 +55,16 @@ function useBusStopGeoJSON() {
     () =>
     ({
       type: 'FeatureCollection' as const,
-      features: busStops.map((s) => ({
-        type: 'Feature' as const,
-        geometry: {
-          type: 'Point' as const,
-          coordinates: [s.longitude, s.latitude],
-        },
-        properties: { id: s.id, name: s.name, status: s.status },
-      })),
+      features: busStops
+        .filter(s => s.status === 'approved')
+        .map((s) => ({
+          type: 'Feature' as const,
+          geometry: {
+            type: 'Point' as const,
+            coordinates: [s.longitude, s.latitude],
+          },
+          properties: { id: s.id, name: s.name, status: s.status },
+        })),
     }),
     [busStops],
   );
@@ -140,7 +145,7 @@ export default function MapScreen() {
   const [locationName, setLocationName] = useState<string | null>(null);
 
   // Search
-  const { results, search, isSearching, clearResults, getNearbyStops } = useOfflineSearch();
+  const { results, search, isSearching, clearResults, getNearbyStops, setUserCoords } = useOfflineSearch();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [destination, setDestination] = useState<SearchResult | null>(null);
@@ -156,8 +161,25 @@ export default function MapScreen() {
   const [flowState, setFlowState] = useState<FlowState>('idle');
   const [distanceToOrigin, setDistanceToOrigin] = useState<number | null>(null);
 
+  // Add Bus Stop State
+  const [longPressCoords, setLongPressCoords] = useState<number[] | null>(null);
+
+  const handleMapLongPress = useCallback((event: any) => {
+    if (flowState === 'idle' && event?.geometry?.coordinates) {
+      setLongPressCoords(event.geometry.coordinates as number[]);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    }
+  }, [flowState]);
+
   // Bus stop markers
   const busStopGeoJSON = useBusStopGeoJSON();
+
+  // Sync user coordinates into the search hook for distance calculations
+  useEffect(() => {
+    if (coords) {
+      setUserCoords(coords.latitude, coords.longitude);
+    }
+  }, [coords, setUserCoords]);
 
   // Nearby stops for recommendations
   const nearbyStops = useMemo(() => {
@@ -368,6 +390,7 @@ export default function MapScreen() {
         attributionEnabled={false}
         compassEnabled={false}
         mapStyle={MAP_STYLE_URL}
+        onLongPress={handleMapLongPress}
       >
         <MapLibreGL.Camera
           ref={cameraRef}
@@ -539,6 +562,37 @@ export default function MapScreen() {
             </Animated.View>
           )}
 
+          <View
+            className="absolute right-5"
+            style={{ bottom: insets.bottom + 160 }}
+          >
+            <Pressable
+              onPress={() => {
+                Alert.alert(
+                  'Add a Bus Stop',
+                  'To add a new bus stop to the map, simply press and hold anywhere on the map!'
+                );
+              }}
+              className="w-12 h-12 rounded-full items-center justify-center active:opacity-80"
+              style={{
+                backgroundColor: isDark ? colors.surface.dark : colors.surface.DEFAULT,
+                borderWidth: isDark ? 1 : 0,
+                borderColor: isDark ? 'rgba(90, 59, 207, 0.25)' : 'transparent',
+                shadowColor: isDark ? '#000' : colors.primary.DEFAULT,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: isDark ? 0.3 : 0.15,
+                shadowRadius: 8,
+                elevation: 6,
+              }}
+            >
+              <Ionicons
+                name="information-circle"
+                size={22}
+                color={isDark ? colors.primary.light : colors.primary.DEFAULT}
+              />
+            </Pressable>
+          </View>
+
           {/* Recenter FAB */}
           <View
             className="absolute right-5"
@@ -708,59 +762,71 @@ export default function MapScreen() {
                 </View>
               ) : null
             }
-            renderItem={({ item, index }) => (
-              <Animated.View
-                entering={FadeInDown.delay(index * 50).duration(300)}
-              >
-                <Pressable
-                  onPress={() => handleSelectResult(item)}
-                  className="flex-row items-center py-3.5"
-                  style={{
-                    borderBottomWidth: StyleSheet.hairlineWidth,
-                    borderBottomColor: isDark ? 'rgba(90, 59, 207, 0.15)' : 'rgba(70, 39, 182, 0.08)',
-                  }}
+            renderItem={({ item, index }) => {
+              const distanceText = item.distanceKm != null
+                ? item.distanceKm < 1
+                  ? `${Math.round(item.distanceKm * 1000)} m`
+                  : `${item.distanceKm.toFixed(1)} km`
+                : null;
+              const addressText = item.address
+                || (item.source === 'local' ? 'Bus Stop' : 'Place');
+
+              return (
+                <Animated.View
+                  entering={FadeInDown.delay(index * 50).duration(300)}
                 >
-                  <View
-                    className="w-10 h-10 rounded-xl items-center justify-center mr-3"
+                  <Pressable
+                    onPress={() => handleSelectResult(item)}
+                    className="flex-row items-center py-3.5"
                     style={{
-                      backgroundColor:
-                        item.source === 'local'
-                          ? colors.primary.DEFAULT + '15'
-                          : colors.status.warning + '15',
+                      borderBottomWidth: StyleSheet.hairlineWidth,
+                      borderBottomColor: isDark ? 'rgba(90, 59, 207, 0.15)' : 'rgba(70, 39, 182, 0.08)',
                     }}
                   >
-                    <Ionicons
-                      name={
-                        item.source === 'local' ? 'location' : 'globe-outline'
-                      }
-                      size={20}
-                      color={
-                        item.source === 'local'
-                          ? colors.primary.DEFAULT
-                          : colors.status.warning
-                      }
-                    />
-                  </View>
-                  <View className="flex-1">
-                    <Text
-                      style={{ color: isDark ? colors.text.dark : colors.text.DEFAULT, fontWeight: '600', fontSize: 14 }}
-                      numberOfLines={1}
+                    <View
+                      className="w-10 h-10 rounded-xl items-center justify-center mr-3"
+                      style={{
+                        backgroundColor:
+                          item.source === 'local'
+                            ? colors.primary.DEFAULT + '15'
+                            : colors.status.warning + '15',
+                      }}
                     >
-                      {item.name}
-                    </Text>
-                    <Text style={{ color: isDark ? colors.text.darkMuted : colors.text.muted, fontSize: 12, marginTop: 2 }}>
-                      {item.source === 'local' ? 'Bus Stop' : 'Place'}
-                      {item.distanceKm != null ? ` · ${item.distanceKm < 1 ? `${Math.round(item.distanceKm * 1000)}m` : `${item.distanceKm.toFixed(1)}km`}` : ''}
-                    </Text>
-                  </View>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={16}
-                    color={isDark ? colors.text.darkMuted : colors.text.muted}
-                  />
-                </Pressable>
-              </Animated.View>
-            )}
+                      <Ionicons
+                        name={
+                          item.source === 'local' ? 'location' : 'globe-outline'
+                        }
+                        size={20}
+                        color={
+                          item.source === 'local'
+                            ? colors.primary.DEFAULT
+                            : colors.status.warning
+                        }
+                      />
+                    </View>
+                    <View className="flex-1" style={{ marginRight: 8 }}>
+                      <Text
+                        style={{ color: isDark ? colors.text.dark : colors.text.DEFAULT, fontWeight: '600', fontSize: 14 }}
+                        numberOfLines={1}
+                      >
+                        {item.name}
+                      </Text>
+                      <Text
+                        style={{ color: isDark ? colors.text.darkMuted : colors.text.muted, fontSize: 12, marginTop: 2, lineHeight: 16 }}
+                        numberOfLines={2}
+                      >
+                        {distanceText ? `${distanceText} · ` : ''}{addressText}
+                      </Text>
+                    </View>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={16}
+                      color={isDark ? colors.text.darkMuted : colors.text.muted}
+                    />
+                  </Pressable>
+                </Animated.View>
+              );
+            }}
             ListEmptyComponent={
               searchQuery.length >= 2 && !isSearching ? (
                 <View className="items-center py-12">
@@ -777,6 +843,15 @@ export default function MapScreen() {
             }
           />
         </Animated.View>
+      )}
+
+      {/* ═══ ADD BUS STOP BOTTOM SHEET ═══ */}
+      {longPressCoords && (
+        <AddBusStopBottomSheet
+          coordinate={longPressCoords}
+          onClose={() => setLongPressCoords(null)}
+          onSuccess={() => setLongPressCoords(null)}
+        />
       )}
 
       {/* ═══ CALCULATING OVERLAY ═══ */}

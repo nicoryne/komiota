@@ -180,10 +180,10 @@ function OnboardingSlide({
       {/* Logo or Icon */}
       {item.showLogo ? (
         <Animated.View style={logoStyle} className="mb-10">
-          <View className="w-28 h-28 bg-white/15 rounded-[32px] items-center justify-center border-2 border-white/20">
+          <View className="items-center justify-center">
             <Image
-              source={require('@/assets/images/logo.svg')}
-              style={{ width: 80, height: 80 }}
+              source={require('@/assets/images/icon-dark.png')}
+              style={{ width: 112, height: 112 }}
               contentFit="contain"
             />
           </View>

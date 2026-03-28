@@ -9,9 +9,11 @@ export interface SearchResult {
   longitude: number;
   source: 'local' | 'nominatim';
   distanceKm?: number;
+  address?: string;
 }
 
 const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org/search';
+const NOMINATIM_REVERSE = 'https://nominatim.openstreetmap.org/reverse';
 const CEBU_VIEWBOX = '123.6,9.8,124.1,10.6';
 
 /** Haversine distance in km */
@@ -27,18 +29,72 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+/** Build a readable address string from Nominatim address components */
+function buildAddress(addr: Record<string, string>): string {
+  const parts: string[] = [];
+  // Street / road
+  if (addr.road) parts.push(addr.road);
+  // Neighbourhood / suburb / village
+  if (addr.neighbourhood) parts.push(addr.neighbourhood);
+  else if (addr.suburb) parts.push(addr.suburb);
+  else if (addr.village) parts.push(addr.village);
+  // City
+  if (addr.city) parts.push(addr.city);
+  else if (addr.town) parts.push(addr.town);
+  else if (addr.municipality) parts.push(addr.municipality);
+  // Province / state
+  if (addr.state) parts.push(addr.state);
+  // Country
+  if (addr.country) parts.push(addr.country);
+  return parts.join(', ');
+}
+
+// Simple in-memory cache for reverse-geocoded addresses
+const addressCache = new Map<string, string>();
+
+/** Reverse geocode a coordinate to get a human-readable address */
+async function reverseGeocode(lat: number, lon: number): Promise<string | undefined> {
+  const cacheKey = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+  if (addressCache.has(cacheKey)) return addressCache.get(cacheKey);
+
+  try {
+    const res = await fetch(
+      `${NOMINATIM_REVERSE}?lat=${lat}&lon=${lon}&format=json&zoom=18&addressdetails=1`,
+      { headers: { 'User-Agent': 'Komiota/1.0' } },
+    );
+    if (!res.ok) return undefined;
+    const data = await res.json();
+    if (data.address) {
+      const addr = buildAddress(data.address);
+      addressCache.set(cacheKey, addr);
+      return addr;
+    }
+    if (data.display_name) {
+      addressCache.set(cacheKey, data.display_name);
+      return data.display_name;
+    }
+  } catch {
+    // Offline — no address
+  }
+  return undefined;
+}
+
 /**
- * Two-tier offline-first search:
+ * Two-tier offline-first search with smart fuzzy matching:
  * 1. Instant: Fuse.js fuzzy search over local WatermelonDB bus stops
  * 2. Fallback: Nominatim geocoding API (debounced, Cebu-bounded)
+ *
+ * Results include distance from user and reverse-geocoded addresses.
  */
 export function useOfflineSearch() {
   const busStops = useBusStops();
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const userCoordsRef = useRef<{ lat: number; lng: number } | null>(null);
 
   // Build Fuse index reactively when bus stops change
+  // Increased fuzziness: threshold 0.5, distance 200, ignoreLocation for smarter matching
   const fuse = useMemo(() => {
     const items = busStops.map((s) => ({
       id: s.id,
@@ -48,8 +104,10 @@ export function useOfflineSearch() {
     }));
     return new Fuse(items, {
       keys: ['name'],
-      threshold: 0.35,
-      distance: 100,
+      threshold: 0.5,
+      distance: 200,
+      ignoreLocation: true,
+      minMatchCharLength: 2,
     });
   }, [busStops]);
 
@@ -71,6 +129,11 @@ export function useOfflineSearch() {
     [busStops],
   );
 
+  /** Set user coordinates for distance calculations */
+  const setUserCoords = useCallback((lat: number, lng: number) => {
+    userCoordsRef.current = { lat, lng };
+  }, []);
+
   const search = useCallback(
     (query: string) => {
       if (!query || query.length < 2) {
@@ -81,64 +144,98 @@ export function useOfflineSearch() {
 
       setIsSearching(true);
 
-      // 1. Local results (instant)
-      const localMatches = fuse.search(query, { limit: 5 }).map((r) => ({
+      const userCoords = userCoordsRef.current;
+
+      // 1. Local results (instant) — enhanced with distance
+      const localMatches: SearchResult[] = fuse.search(query, { limit: 5 }).map((r) => ({
         ...r.item,
         source: 'local' as const,
+        distanceKm: userCoords
+          ? haversine(userCoords.lat, userCoords.lng, r.item.latitude, r.item.longitude)
+          : undefined,
       }));
 
       setResults(localMatches);
 
-      // 2. Online fallback (debounced) — only if few local results
+      // Enrich local results with reverse-geocoded addresses (async, non-blocking)
+      if (localMatches.length > 0) {
+        Promise.all(
+          localMatches.map(async (match) => {
+            const addr = await reverseGeocode(match.latitude, match.longitude);
+            return { ...match, address: addr };
+          }),
+        ).then((enriched) => {
+          // Only update if we're still showing these results
+          setResults((current) => {
+            // Check if the local results are still the base (no Nominatim merge yet or still same query)
+            const localIds = new Set(localMatches.map((m) => m.id));
+            return current.map((r) => {
+              if (localIds.has(r.id)) {
+                const enrichedItem = enriched.find((e) => e.id === r.id);
+                return enrichedItem || r;
+              }
+              return r;
+            });
+          });
+        });
+      }
+
+      // 2. Online fallback (debounced) — always fetch for richer results
       if (debounceRef.current) clearTimeout(debounceRef.current);
 
-      if (localMatches.length < 3) {
-        debounceRef.current = setTimeout(async () => {
-          try {
-            const params = new URLSearchParams({
-              q: query,
-              format: 'json',
-              viewbox: CEBU_VIEWBOX,
-              bounded: '1',
-              limit: '5',
-              addressdetails: '0',
-            });
-            const res = await fetch(`${NOMINATIM_BASE}?${params}`, {
-              headers: { 'User-Agent': 'Komiota/1.0' },
-            });
-            if (!res.ok) return;
+      debounceRef.current = setTimeout(async () => {
+        try {
+          const params = new URLSearchParams({
+            q: query,
+            format: 'json',
+            viewbox: CEBU_VIEWBOX,
+            bounded: '1',
+            limit: '5',
+            addressdetails: '1',
+          });
+          const res = await fetch(`${NOMINATIM_BASE}?${params}`, {
+            headers: { 'User-Agent': 'Komiota/1.0' },
+          });
+          if (!res.ok) return;
 
-            const data: Array<{
-              place_id: number;
-              display_name: string;
-              lat: string;
-              lon: string;
-            }> = await res.json();
+          const data: Array<{
+            place_id: number;
+            display_name: string;
+            lat: string;
+            lon: string;
+            address?: Record<string, string>;
+          }> = await res.json();
 
-            const nominatimResults: SearchResult[] = data.map((d) => ({
+          const nominatimResults: SearchResult[] = data.map((d) => {
+            const lat = parseFloat(d.lat);
+            const lon = parseFloat(d.lon);
+            return {
               id: `nom-${d.place_id}`,
-              name: d.display_name.split(',').slice(0, 2).join(','),
-              latitude: parseFloat(d.lat),
-              longitude: parseFloat(d.lon),
+              name: d.display_name.split(',').slice(0, 2).join(',').trim(),
+              latitude: lat,
+              longitude: lon,
               source: 'nominatim',
-            }));
+              distanceKm: userCoords
+                ? haversine(userCoords.lat, userCoords.lng, lat, lon)
+                : undefined,
+              address: d.address ? buildAddress(d.address) : d.display_name,
+            };
+          });
 
-            // Merge: local first, then nominatim (deduplicated)
-            const localIds = new Set(localMatches.map((m) => m.id));
-            const merged = [
-              ...localMatches,
+          // Merge: local first, then nominatim (deduplicated)
+          setResults((currentLocal) => {
+            const localIds = new Set(currentLocal.filter((r) => r.source === 'local').map((m) => m.id));
+            return [
+              ...currentLocal.filter((r) => r.source === 'local'),
               ...nominatimResults.filter((r) => !localIds.has(r.id)),
             ];
-            setResults(merged);
-          } catch {
-            // Offline — silently keep local results
-          } finally {
-            setIsSearching(false);
-          }
-        }, 500);
-      } else {
-        setIsSearching(false);
-      }
+          });
+        } catch {
+          // Offline — silently keep local results
+        } finally {
+          setIsSearching(false);
+        }
+      }, 500);
     },
     [fuse],
   );
@@ -148,5 +245,5 @@ export function useOfflineSearch() {
     setIsSearching(false);
   }, []);
 
-  return { results, search, isSearching, clearResults, getNearbyStops };
+  return { results, search, isSearching, clearResults, getNearbyStops, setUserCoords };
 }

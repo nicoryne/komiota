@@ -45,6 +45,7 @@ export default function RootLayout() {
           <Stack.Screen name="index" />
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(settings)" options={{ animation: 'slide_from_right' }} />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>

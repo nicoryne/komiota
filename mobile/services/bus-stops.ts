@@ -52,7 +52,7 @@ export async function getNearbyStops(
  * Validates input via Zod before sending — rejects coordinates outside Cebu City.
  */
 export async function submitBusStop(
-  input: { name: string; latitude: number; longitude: number; image_url?: string | null; created_by: string },
+  input: { name: string; latitude: number; longitude: number; image_url?: string | null; created_by: string; status?: 'pending' | 'approved' | 'rejected' },
 ): Promise<Tables<'bus_stops'>> {
   const validated = busStopSubmitSchema.parse(input);
 
@@ -63,10 +63,49 @@ export async function submitBusStop(
       location: `SRID=4326;POINT(${validated.longitude} ${validated.latitude})`,
       image_url: validated.image_url ?? null,
       created_by: input.created_by,
+      status: validated.status ?? 'pending',
     })
     .select()
     .single();
 
   if (error) throw error;
   return data;
+}
+
+/**
+ * Fetches all pending bus stops for moderation.
+ */
+export async function getPendingBusStops(): Promise<Tables<'bus_stops'>[]> {
+  const { data, error } = await supabase
+    .from('bus_stops')
+    .select('*')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+/**
+ * Updates the status of a bus stop.
+ */
+export async function updateBusStopStatus(id: string, status: 'approved' | 'rejected'): Promise<void> {
+  const { error } = await supabase
+    .from('bus_stops')
+    .update({ status })
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+/**
+ * Permanently deletes a bus stop.
+ */
+export async function deleteBusStop(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('bus_stops')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
 }

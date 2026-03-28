@@ -1,9 +1,9 @@
 import { useState, useCallback } from 'react';
 import * as turf from '@turf/turf';
 import { database } from '../db';
-import BusStop from '../db/models/BusStop';
-import RouteStop from '../db/models/RouteStop';
-import Route from '../db/models/Route';
+import BusStop from '../db/models/bus-stop';
+import RouteStop from '../db/models/route-stop';
+import Route from '../db/models/route';
 import { useBusStops } from './use-bus-stops';
 import { WALKING_SPEED_KMH } from '../lib/map-config';
 

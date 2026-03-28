@@ -14,6 +14,12 @@ const sizeMap = {
   lg: { container: 'h-20 w-20', text: 'text-2xl' },
 };
 
+const exactSizes = {
+  sm: 32,
+  md: 48,
+  lg: 80,
+};
+
 function getInitials(name?: string | null): string {
   if (!name) return '?';
   return name
@@ -27,11 +33,13 @@ function getInitials(name?: string | null): string {
 export function Avatar({ uri, name, size = 'md' }: AvatarProps) {
   const { container, text: textSize } = sizeMap[size];
 
+  const dimension = exactSizes[size];
+
   if (uri) {
     return (
       <Image
         source={{ uri }}
-        className={`${container} rounded-full`}
+        style={{ width: dimension, height: dimension, borderRadius: dimension / 2 }}
         contentFit="cover"
       />
     );

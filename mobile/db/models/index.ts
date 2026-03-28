@@ -1,4 +1,4 @@
-export { default as Route } from './Route';
-export { default as BusStop } from './BusStop';
-export { default as RouteStop } from './RouteStop';
-export { default as UserBookmark } from './UserBookmark';
+export { default as Route } from './route';
+export { default as BusStop } from './bus-stop';
+export { default as RouteStop } from './route-stop';
+export { default as UserBookmark } from './user-bookmarks';

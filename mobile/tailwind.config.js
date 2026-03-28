@@ -5,30 +5,32 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: {
-          DEFAULT: "#4627b6",
-          light: "#5a3bcf",
-          dark: "#361d8f",
-        },
+        primary: '#402859', // Deep Amethyst
+        secondary: '#895C9A', // Plum Builder
+        tertiary: '#CAB6CE', // Orchid Petal
         background: {
-          DEFAULT: "#f4f0fc",
-          dark: "#171520",
+          DEFAULT: '#F8F4F1', // Vanilla Milk
+          dark: '#1A1622', // Midnight Plum
         },
         surface: {
-          DEFAULT: "#FCFAFF",
-          dark: "#232036",
+          DEFAULT: '#F8F4F1', // Reuse background for light
+          dark: '#2A2435', // Twilight Surface
         },
         text: {
-          DEFAULT: "#1C1A22",
-          muted: "#8E8A9A",
-          dark: "#FAFAFA",
-          "dark-muted": "#6B6780",
+          DEFAULT: '#402859', // Deep Amethyst for primary text
+          muted: '#CAB6CE', // Orchid Petal for muted
+          dark: '#F8F4F1', // Vanilla Milk for dark mode primary
+          darkMuted: '#CAB6CE', // Orchid Petal for dark mode muted
         },
         status: {
-          success: "#4ADE80",
-          warning: "#FBBF24",
-          error: "#F87171",
+          success: '#4ADE80',
+          warning: '#FBBF24',
+          error: '#F87171',
         },
+      },
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        heading: ['Quicksand', 'sans-serif'],
       },
       borderRadius: {
         card: "24px",

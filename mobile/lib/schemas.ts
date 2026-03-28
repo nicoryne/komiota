@@ -37,6 +37,7 @@ export const busStopSubmitSchema = z.object({
   latitude: cebuLatitude,
   longitude: cebuLongitude,
   image_url: z.string().url('Invalid image URL').optional().nullable(),
+  status: z.enum(['pending', 'approved', 'rejected']).optional(),
 });
 
 // ─── Trip Start ────────────────────────────────────────────────

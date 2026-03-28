@@ -10,8 +10,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { colors } from '@/lib/colors';
+import { useColorScheme } from 'nativewind';
 
 export default function LoginScreen() {
+  const { colorScheme } = useColorScheme();
   const { signIn } = useAuth();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
@@ -43,10 +45,14 @@ export default function LoginScreen() {
             entering={FadeInDown.delay(100).duration(600).springify()}
             className="items-center mb-10"
           >
-            <View className="w-20 h-20 bg-primary rounded-[24px] items-center justify-center mb-5 shadow-lg shadow-primary/25">
+            <View className="items-center justify-center mb-5">
               <Image
-                source={require('@/assets/images/logo.svg')}
-                style={{ width: 52, height: 52 }}
+                source={
+                  colorScheme === 'dark'
+                    ? require('@/assets/images/icon-dark.png')
+                    : require('@/assets/images/icon.png')
+                }
+                style={{ width: 80, height: 80 }}
                 contentFit="contain"
               />
             </View>

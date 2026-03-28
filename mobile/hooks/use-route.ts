@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Q } from '@nozbe/watermelondb';
 import { database } from '../db';
-import Route from '../db/models/Route';
-import RouteStop from '../db/models/RouteStop';
-import BusStop from '../db/models/BusStop';
+import Route from '../db/models/route';
+import RouteStop from '../db/models/route-stop';
+import BusStop from '../db/models/bus-stop';
 
 interface RouteWithStops {
   route: Route | null;

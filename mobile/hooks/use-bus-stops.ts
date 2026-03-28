@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { database } from '../db';
-import BusStop from '../db/models/BusStop';
+import BusStop from '../db/models/bus-stop';
 
 /**
  * Observes all bus stops from the local WatermelonDB for reactive offline rendering.
