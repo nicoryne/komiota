@@ -454,7 +454,7 @@ export default function MapScreen() {
               filter={['==', ['get', 'segment'], 'transit']}
               belowLayerID="transit-line"
               style={{
-                lineColor: colors.primary.light,
+                lineColor: colors.text.dark,
                 lineWidth: 10,
                 lineBlur: 8,
                 lineOpacity: 0.35,
@@ -513,7 +513,7 @@ export default function MapScreen() {
               <Ionicons
                 name="search"
                 size={20}
-                color={colors.primary.DEFAULT}
+                color={isDark ? colors.text.dark : colors.text.DEFAULT}
               />
               <Text
                 style={{ color: isDark ? colors.text.darkMuted : colors.text.muted }}
@@ -548,7 +548,7 @@ export default function MapScreen() {
                 }}
               >
                 <View className="w-8 h-8 rounded-full items-center justify-center mr-2.5" style={{ backgroundColor: colors.primary.DEFAULT + '20' }}>
-                  <Ionicons name="navigate" size={16} color={colors.primary.DEFAULT} />
+                  <Ionicons name="navigate" size={16} color={isDark ? colors.text.dark : colors.primary.DEFAULT} />
                 </View>
                 <View style={{ maxWidth: 160 }}>
                   <Text style={{ color: isDark ? colors.text.darkMuted : colors.text.muted, fontSize: 10, fontWeight: '500' }}>
@@ -588,7 +588,7 @@ export default function MapScreen() {
               <Ionicons
                 name="information-circle"
                 size={22}
-                color={isDark ? colors.primary.light : colors.primary.DEFAULT}
+                color={isDark ? colors.text.dark : colors.primary.DEFAULT}
               />
             </Pressable>
           </View>
@@ -615,7 +615,7 @@ export default function MapScreen() {
               <Ionicons
                 name="locate"
                 size={22}
-                color={isDark ? colors.primary.light : colors.primary.DEFAULT}
+                color={isDark ? colors.text.dark : colors.primary.DEFAULT}
               />
             </Pressable>
           </View>
@@ -647,7 +647,7 @@ export default function MapScreen() {
                 <Ionicons
                   name="arrow-back"
                   size={20}
-                  color={isDark ? colors.primary.light : colors.text.DEFAULT}
+                  color={isDark ? colors.text.dark : colors.text.DEFAULT}
                 />
               </Pressable>
             </Animated.View>
@@ -698,7 +698,7 @@ export default function MapScreen() {
             style={{ paddingTop: insets.top + 20, paddingBottom: 16 }}
           >
             <View
-              className="flex-row items-center rounded-pill px-4 py-3.5"
+              className="flex-row items-center rounded-pill px-5 py-2"
               style={{
                 backgroundColor: isDark ? colors.surface.dark : colors.surface.DEFAULT,
                 borderWidth: isDark ? 1 : 0,
@@ -722,7 +722,7 @@ export default function MapScreen() {
                 <Ionicons
                   name="arrow-back"
                   size={20}
-                  color={isDark ? colors.primary.light : colors.text.DEFAULT}
+                  color={isDark ? colors.text.dark : colors.text.DEFAULT}
                 />
               </Pressable>
               <TextInput
@@ -786,10 +786,7 @@ export default function MapScreen() {
                     <View
                       className="w-10 h-10 rounded-xl items-center justify-center mr-3"
                       style={{
-                        backgroundColor:
-                          item.source === 'local'
-                            ? colors.primary.DEFAULT + '15'
-                            : colors.status.warning + '15',
+                        backgroundColor: colors.primary.DEFAULT + (isDark ? '25' : '15'),
                       }}
                     >
                       <Ionicons
@@ -797,11 +794,7 @@ export default function MapScreen() {
                           item.source === 'local' ? 'location' : 'globe-outline'
                         }
                         size={20}
-                        color={
-                          item.source === 'local'
-                            ? colors.primary.DEFAULT
-                            : colors.status.warning
-                        }
+                        color={colors.primary.DEFAULT}
                       />
                     </View>
                     <View className="flex-1" style={{ marginRight: 8 }}>

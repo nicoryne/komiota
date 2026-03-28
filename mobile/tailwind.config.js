@@ -18,7 +18,7 @@ module.exports = {
         },
         text: {
           DEFAULT: '#402859', // Deep Amethyst for primary text
-          muted: '#CAB6CE', // Orchid Petal for muted
+          muted: '#895C9A', // Plum Builder for muted (darker)
           dark: '#F8F4F1', // Vanilla Milk for dark mode primary
           darkMuted: '#CAB6CE', // Orchid Petal for dark mode muted
         },

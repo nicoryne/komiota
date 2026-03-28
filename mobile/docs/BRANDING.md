@@ -12,7 +12,7 @@ This document outlines the core branding, aesthetic principles, and design syste
 ### Light Mode Palette & Use Cases:
 - **Background (Vanilla Milk - #F8F4F1):** Use for the main app background, bottom sheet backgrounds, and offline map base layers.
 - **Primary Brand & Text (Deep Amethyst - #402859):** Use for primary high-emphasis text, primary action buttons (like "Start Route" or "Report Stop"), the main logo, and active bottom-navigation icons.
-- **Secondary Brand (Plum Builder - #895C9A):** Use for secondary buttons, progress bars (e.g., Commuter Score tracker), active UI highlights, and route line colors on the map.
+- **Secondary Brand (Plum Builder - #895C9A):** Use for secondary buttons, progress bars (e.g., Commuter Score tracker), active UI highlights, route line colors on the map, and muted text.
 - **Tertiary/Accent (Orchid Petal - #CAB6CE):** Use for subtle borders, divider lines, disabled button states, and backgrounds for small tags/badges (like "Moderator" or "Offline").
 
 ### Dark Mode Palette & Use Cases:
