@@ -1,56 +1,76 @@
-import { WifiOff, Map, Users } from 'lucide-react';
+import { MapPin, Trophy, Users, TrendingUp, Star, Zap } from 'lucide-react';
 
 const features = [
   {
-    icon: WifiOff,
-    title: 'Offline-First Navigation',
-    description:
-      'Download route maps and stop data for use without an internet connection. Commute confidently even in low-signal areas.',
+    icon: MapPin,
+    title: 'Track Your Trips',
+    description: 'Log your daily commutes and see your journey history. Every trip counts towards your commuter score.',
+    color: 'from-deep-amethyst to-plum-builder',
   },
   {
-    icon: Map,
-    title: 'Interactive Map',
-    description:
-      'Explore the full CBRT network on a live, interactive map. See nearby stops, route paths, and real-time community updates.',
+    icon: Trophy,
+    title: 'Earn Badges',
+    description: 'Unlock achievements as you explore routes, help others, and reach milestones in your commuting journey.',
+    color: 'from-plum-builder to-orchid-petal',
   },
   {
     icon: Users,
-    title: 'Community Crowdsourcing',
-    description:
-      'Submit new stops, report changes, and earn points for helping keep the map accurate. Every contribution makes Cebu commuting better.',
+    title: 'Join Factions',
+    description: 'Team up with fellow commuters, compete in challenges, and climb the leaderboards together.',
+    color: 'from-orchid-petal to-plum-builder',
+  },
+  {
+    icon: TrendingUp,
+    title: 'Build Streaks',
+    description: 'Maintain your commuting streak and watch your rank grow. Consistency is rewarded!',
+    color: 'from-deep-amethyst to-orchid-petal',
+  },
+  {
+    icon: Star,
+    title: 'Discover Routes',
+    description: 'Explore new bus routes, find the best connections, and share your favorite paths with the community.',
+    color: 'from-plum-builder to-deep-amethyst',
+  },
+  {
+    icon: Zap,
+    title: 'Help Others',
+    description: 'Submit new bus stops, verify locations, and contribute to making transit better for everyone.',
+    color: 'from-orchid-petal to-deep-amethyst',
   },
 ];
 
 export function FeaturesSection() {
   return (
-    <section className="w-full bg-[#FAFAFA] px-6 py-16">
-      <div className="max-w-5xl mx-auto flex flex-col items-center gap-10">
-        <div className="text-center flex flex-col gap-2">
-          <h2 className="text-3xl font-bold text-[#1C1A22] tracking-tight">
-            Built for Cebu Commuters
+    <section id="features" className="py-20 md:py-32 bg-white">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl md:text-5xl font-bold text-deep-amethyst mb-4">
+            Why Commuters Love Komiota
           </h2>
-          <p className="text-[#1C1A22]/60 text-base max-w-lg mx-auto">
-            Everything you need to navigate the CBRT network, powered by the community.
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Turn your daily commute into an adventure with features designed to make public transit engaging and rewarding.
           </p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full">
-          {features.map((feature) => {
-            const Icon = feature.icon;
-            return (
-              <div
-                key={feature.title}
-                className="flex flex-col gap-4 p-6 bg-[#FCFAFF] border border-[#4627b6]/10 rounded-[16px]"
-              >
-                <div className="flex items-center justify-center w-11 h-11 rounded-[12px] bg-[#4627b6]/10">
-                  <Icon className="w-5 h-5 text-[#4627b6]" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <h3 className="text-base font-semibold text-[#1C1A22]">{feature.title}</h3>
-                  <p className="text-sm text-[#1C1A22]/60 leading-relaxed">{feature.description}</p>
-                </div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {features.map((feature, index) => (
+            <div
+              key={index}
+              className="group relative bg-vanilla-milk rounded-2xl p-8 hover:shadow-xl transition-all duration-300 border border-orchid-petal/20 hover:border-plum-builder/40"
+            >
+              <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+                <feature.icon className="w-7 h-7 text-white" />
               </div>
-            );
-          })}
+              
+              <h3 className="text-xl font-bold text-deep-amethyst mb-3">
+                {feature.title}
+              </h3>
+              
+              <p className="text-gray-600 leading-relaxed">
+                {feature.description}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
     </section>

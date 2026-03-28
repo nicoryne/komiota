@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bus } from 'lucide-react';
 import { loginSchema } from '@/lib/schemas/login';
 import { loginAction } from '@/actions/auth';
 
@@ -37,7 +36,7 @@ export default function LoginPage() {
       } else {
         const errorMsg = result.error ?? 'Login failed';
         const isNoAccess =
-          result.data?.userRole === 'user' ||
+          result.userRole === 'user' ||
           errorMsg.toLowerCase().includes('access');
         setFormError(
           isNoAccess
@@ -51,23 +50,21 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#FCFAFF] px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-vanilla-milk px-4">
       <div className="w-full max-w-sm flex flex-col gap-8">
         {/* Logo */}
         <div className="flex flex-col items-center gap-3">
-          <div className="flex items-center justify-center w-12 h-12 rounded-[14px] bg-[#402859]">
-            <Bus className="w-6 h-6 text-white" />
-          </div>
+          <div className="text-6xl">🦫</div>
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-[#402859] tracking-tight">Komiota</h1>
-            <p className="text-sm text-[#402859] font-medium">Dashboard Login</p>
+            <h1 className="text-3xl font-bold text-deep-amethyst tracking-tight">Komiota</h1>
+            <p className="text-sm text-plum-builder font-medium">Dashboard Login</p>
           </div>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="email" className="text-sm font-medium text-[#402859]">
+            <label htmlFor="email" className="text-sm font-medium text-deep-amethyst">
               Email
             </label>
             <input
@@ -77,7 +74,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="w-full px-4 py-2.5 rounded-[12px] border border-[#402859]/15 bg-white text-[#402859] text-sm placeholder:text-[#402859]/30 focus:outline-none focus:ring-2 focus:ring-[#402859]/40 focus:border-[#402859] transition"
+              className="w-full px-4 py-2.5 rounded-[12px] border border-orchid-petal bg-white text-deep-amethyst text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-plum-builder focus:border-plum-builder transition"
             />
             {emailError && (
               <p className="text-xs text-red-500">{emailError}</p>
@@ -85,7 +82,7 @@ export default function LoginPage() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="password" className="text-sm font-medium text-[#402859]">
+            <label htmlFor="password" className="text-sm font-medium text-deep-amethyst">
               Password
             </label>
             <input
@@ -95,7 +92,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full px-4 py-2.5 rounded-[12px] border border-[#402859]/15 bg-white text-[#402859] text-sm placeholder:text-[#402859]/30 focus:outline-none focus:ring-2 focus:ring-[#402859]/40 focus:border-[#402859] transition"
+              className="w-full px-4 py-2.5 rounded-[12px] border border-orchid-petal bg-white text-deep-amethyst text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-plum-builder focus:border-plum-builder transition"
             />
             {passwordError && (
               <p className="text-xs text-red-500">{passwordError}</p>
@@ -109,7 +106,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-full bg-[#402859] text-white text-sm font-semibold hover:bg-[#321f4a] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full py-3 rounded-full bg-deep-amethyst text-vanilla-milk text-sm font-semibold hover:bg-plum-builder transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading ? 'Signing in…' : 'Sign In'}
           </button>

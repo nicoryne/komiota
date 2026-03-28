@@ -3,7 +3,7 @@ import { Database } from '@/database.types';
 import { type NextRequest, NextResponse } from 'next/server';
 import { isProtectedRoute, isKnownRoute, getRedirectUrl, hasAccessToRoute } from '@/lib/routes';
 
-type UserRole = Database['public']['Enums']['user_role'];
+type UserRole = Database['public']['Enums']['app_role'];
 
 export const updateSession = async (request: NextRequest) => {
   let response = NextResponse.next({
@@ -47,7 +47,6 @@ export const updateSession = async (request: NextRequest) => {
     } = await supabase.auth.getUser();
 
     const url = request.nextUrl.pathname;
-    const role = user?.app_metadata?.role as UserRole | undefined;
 
     // Check if the route is known (exists in our application)
     if (!isKnownRoute(url)) {
@@ -60,14 +59,36 @@ export const updateSession = async (request: NextRequest) => {
         return NextResponse.redirect(new URL('/no-access', request.url));
       }
       
+      // Fetch user role from profiles table
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      
+      const role = profile?.role as UserRole | undefined;
+      
       // Check if user has the right role for this protected route
-      if (role && !hasAccessToRoute(url, role)) {
+      // If no role is set, deny access
+      if (!role) {
+        return NextResponse.redirect(new URL('/no-access', request.url));
+      }
+      
+      if (!hasAccessToRoute(url, role)) {
         return NextResponse.redirect(new URL('/no-access', request.url));
       }
     }
 
     // Handle authenticated user redirects
     if (user) {
+      // Fetch user role from profiles table for redirect logic
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      
+      const role = profile?.role as UserRole | undefined;
       const redirectUrl = getRedirectUrl(url, role);
       
       // If we need to redirect (different from current URL)

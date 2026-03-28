@@ -11,12 +11,26 @@ export interface ColumnDef<T> {
   className?: string;
 }
 
+export interface TableAction<T> {
+  key: string;
+  label: string;
+  icon?: React.ReactNode;
+  onClick: (row: T) => void;
+  variant?: 'default' | 'destructive' | 'outline';
+}
+
 interface DataTableProps<T> {
   data: T[];
   columns: ColumnDef<T>[];
   totalCount: number;
   currentPage: number;
   pageSize: number;
+  actions?: TableAction<T>[];
+  addButton?: {
+    label: string;
+    onClick: () => void;
+  };
+  onPageChange?: (page: number) => void;
 }
 
 export function DataTable<T>({
@@ -25,19 +39,33 @@ export function DataTable<T>({
   totalCount,
   currentPage,
   pageSize,
+  actions,
+  addButton,
+  onPageChange,
 }: DataTableProps<T>) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pageCount = Math.ceil(totalCount / pageSize);
 
   const handlePageChange = (newPage: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('page', newPage.toString());
-    router.push(`?${params.toString()}`);
+    if (onPageChange) {
+      onPageChange(newPage);
+    } else {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('page', newPage.toString());
+      router.push(`?${params.toString()}`);
+    }
   };
+
+  const hasActions = actions && actions.length > 0;
 
   return (
     <div className="flex flex-col gap-4">
+      {addButton && (
+        <div className="flex justify-end">
+          <Button onClick={addButton.onClick}>{addButton.label}</Button>
+        </div>
+      )}
       <div className="border border-gray-200 rounded-[12px] overflow-hidden bg-white">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -51,13 +79,18 @@ export function DataTable<T>({
                     {column.header}
                   </th>
                 ))}
+                {hasActions && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                    Actions
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {data.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={columns.length}
+                    colSpan={columns.length + (hasActions ? 1 : 0)}
                     className="px-6 py-8 text-center text-sm text-gray-500"
                   >
                     No data available
@@ -81,6 +114,23 @@ export function DataTable<T>({
                             : ''}
                       </td>
                     ))}
+                    {hasActions && (
+                      <td className="px-6 py-4 text-sm">
+                        <div className="flex gap-2">
+                          {actions.map((action) => (
+                            <Button
+                              key={action.key}
+                              size="sm"
+                              variant={action.variant || 'outline'}
+                              onClick={() => action.onClick(row)}
+                            >
+                              {action.icon}
+                              {action.label}
+                            </Button>
+                          ))}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

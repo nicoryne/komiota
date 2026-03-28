@@ -1,66 +1,75 @@
-import { FactionService } from '@/services/faction';
-import { DataTable, ColumnDef } from '@/components/dashboard/data-table';
+'use client';
+
+import { useState } from 'react';
+import { useFactions } from '@/hooks/use-factions';
+import { DataTable } from '@/components/dashboard/data-table';
+import { getFactionColumns } from '@/components/dashboard/factions/faction-columns';
+import { FactionModal } from '@/components/dashboard/factions/faction-modal';
 import { ConfirmDialog } from '@/components/dashboard/confirm-dialog';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2 } from 'lucide-react';
-import { deleteFaction } from '@/actions/faction';
+import { Pencil, Trash2, Plus } from 'lucide-react';
+import { FactionWithMemberCount } from '@/services/faction';
 
-type FactionRow = {
-  id: string;
-  name: string;
-  description: string | null;
-  total_score: number | null;
-  member_count: number;
-};
+export default function FactionsPage() {
+  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingFaction, setEditingFaction] = useState<FactionWithMemberCount | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [factionToDelete, setFactionToDelete] = useState<FactionWithMemberCount | null>(null);
 
-export default async function FactionsPage() {
-  const result = await FactionService.list();
-  const factions = result.success ? result.data : [];
+  const {
+    data,
+    totalCount,
+    loading,
+    createFaction,
+    updateFaction,
+    deleteFaction,
+    isCreating,
+    isUpdating,
+    isDeleting,
+  } = useFactions();
 
-  const columns: ColumnDef<FactionRow>[] = [
+  const handleEdit = (faction: FactionWithMemberCount) => {
+    setEditingFaction(faction);
+    setModalMode('edit');
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (faction: FactionWithMemberCount) => {
+    setFactionToDelete(faction);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (factionToDelete) {
+      deleteFaction(factionToDelete.id);
+      setDeleteConfirmOpen(false);
+      setFactionToDelete(null);
+    }
+  };
+
+  const handleSubmit = (data: any) => {
+    if (modalMode === 'add') {
+      createFaction(data);
+    } else if (editingFaction) {
+      updateFaction(editingFaction.id, data);
+    }
+  };
+
+  const actions = [
     {
-      header: 'Name',
-      cell: (row) => (
-        <span className="font-medium text-[#1C1A22]">{row.name}</span>
-      ),
+      key: 'edit',
+      label: 'Edit',
+      icon: <Pencil className="w-3 h-3 mr-1" />,
+      onClick: handleEdit,
+      variant: 'outline' as const,
     },
     {
-      header: 'Description',
-      cell: (row) => (
-        <span className="text-gray-600">{row.description || '—'}</span>
-      ),
-    },
-    {
-      header: 'Total Score',
-      cell: (row) => row.total_score?.toLocaleString() || '0',
-    },
-    {
-      header: 'Members',
-      cell: (row) => row.member_count.toLocaleString(),
-    },
-    {
-      header: 'Actions',
-      cell: (row) => (
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" asChild>
-            <a href={`/dashboard/factions/${row.id}/edit`}>Edit</a>
-          </Button>
-          <ConfirmDialog
-            trigger={
-              <Button size="sm" variant="destructive">
-                <Trash2 className="w-3 h-3" />
-              </Button>
-            }
-            title="Delete Faction"
-            description={`Are you sure you want to delete "${row.name}"? All members will be removed from this faction.`}
-            confirmLabel="Delete"
-            onConfirm={async () => {
-              'use server';
-              await deleteFaction(row.id);
-            }}
-          />
-        </div>
-      ),
+      key: 'delete',
+      label: 'Delete',
+      icon: <Trash2 className="w-3 h-3 mr-1" />,
+      onClick: handleDelete,
+      variant: 'destructive' as const,
     },
   ];
 
@@ -68,23 +77,44 @@ export default async function FactionsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[#1C1A22]">Factions</h1>
+          <h1 className="text-3xl font-bold text-deep-amethyst">Factions</h1>
           <p className="text-gray-600 mt-1">Manage community factions</p>
         </div>
-        <Button asChild>
-          <a href="/dashboard/factions/new">
-            <Plus className="w-4 h-4" />
-            Create Faction
-          </a>
-        </Button>
       </div>
 
       <DataTable
-        data={factions}
-        columns={columns}
-        totalCount={factions.length}
+        data={data}
+        columns={getFactionColumns()}
+        totalCount={totalCount}
         currentPage={1}
-        pageSize={factions.length}
+        pageSize={data.length}
+        actions={actions}
+        addButton={{
+          label: 'Create Faction',
+          onClick: () => {
+            setModalMode('add');
+            setEditingFaction(null);
+            setIsModalOpen(true);
+          },
+        }}
+      />
+
+      <FactionModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        mode={modalMode}
+        faction={editingFaction}
+        onSubmit={handleSubmit}
+        isSubmitting={isCreating || isUpdating}
+      />
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title="Delete Faction"
+        description={`Are you sure you want to delete "${factionToDelete?.name}"? All members will be removed from this faction.`}
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
       />
     </div>
   );

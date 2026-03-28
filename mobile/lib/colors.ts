@@ -6,6 +6,8 @@
 export const colors = {
   primary: {
     DEFAULT: '#402859', // Deep Amethyst
+    light: '#6D4F88', // Lighter Amethyst for dark mode accents
+    dark: '#341F54',
   },
   secondary: '#895C9A', // Plum Builder
   tertiary: '#CAB6CE', // Orchid Petal

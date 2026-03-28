@@ -1,49 +1,52 @@
-import React, { useState, useRef, useMemo, useCallback, useEffect, useLayoutEffect } from 'react';
-import {
-  View,
-  Text,
-  Pressable,
-  TextInput,
-  FlatList,
-  StyleSheet,
-  ActivityIndicator,
-  Keyboard,
-  Alert,
-} from 'react-native';
-import MapLibreGL from '@maplibre/maplibre-react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as turf from '@turf/turf';
-import Animated, {
-  FadeIn,
-  FadeOut,
-  FadeInDown,
-  FadeInUp,
-  SlideInDown,
-  SlideOutDown,
-} from 'react-native-reanimated';
-import { colors } from '@/lib/colors';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import {
-  MAP_STYLE_URL,
-  CEBU_CENTER,
-  DEFAULT_ZOOM,
-  DEFAULT_PITCH,
-  DEFAULT_BEARING,
-  GEOFENCE_RADIUS_METERS,
-  BUILDING_COLOR,
-  BUILDING_OUTLINE_COLOR,
-} from '@/lib/map-config';
-import { useAuth } from '@/hooks/use-auth';
-import { useUserLocation } from '@/hooks/use-user-location';
-import { useOfflineSearch, type SearchResult } from '@/hooks/use-offline-search';
-import { useOfflineRouting, type RoutePlan } from '@/hooks/use-offline-routing';
-import { useTrip } from '@/hooks/use-trip';
-import { useBusStops } from '@/hooks/use-bus-stops';
+import { AddBusStopBottomSheet } from '@/components/add-bus-stop-bottom-sheet';
 import { RouteBottomSheet } from '@/components/route-bottom-sheet';
 import { TripCompleteModal } from '@/components/trip-complete-modal';
-import { AddBusStopBottomSheet } from '@/components/add-bus-stop-bottom-sheet';
+import { useAuth } from '@/hooks/use-auth';
+import { useBusStops } from '@/hooks/use-bus-stops';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useOfflineRouting, type RoutePlan } from '@/hooks/use-offline-routing';
+import { useOfflineSearch, type SearchResult } from '@/hooks/use-offline-search';
+import { useTrip } from '@/hooks/use-trip';
+import { useUserLocation } from '@/hooks/use-user-location';
+import { colors } from '@/lib/colors';
+import {
+  BUILDING_COLOR,
+  CEBU_CENTER,
+  DEFAULT_BEARING,
+  DEFAULT_PITCH,
+  DEFAULT_ZOOM,
+  GEOFENCE_RADIUS_METERS,
+  MAP_STYLE_URL
+} from '@/lib/map-config';
+import { Ionicons } from '@expo/vector-icons';
+import MapLibreGL from '@maplibre/maplibre-react-native';
+import * as turf from '@turf/turf';
 import * as Haptics from 'expo-haptics';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Keyboard,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
+  FadeOut,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { DestinationMarker } from './components/destination-marker';
 
 // ─── Types ───────────────────────────────────────────────────
 type FlowState = 'idle' | 'preview' | 'boarding' | 'transit' | 'complete';
@@ -149,6 +152,7 @@ export default function MapScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [destination, setDestination] = useState<SearchResult | null>(null);
+  const [destinationInfoOpen, setDestinationInfoOpen] = useState(false);
 
   // Routing
   const { routePlan, isCalculating, calculateRoute, clearRoute } =
@@ -196,6 +200,66 @@ export default function MapScreen() {
     destination?.longitude ?? null,
   );
 
+  // Destination point marker
+  const destinationGeoJSON = useMemo(() => {
+    if (!destination) return null;
+    return {
+      type: 'FeatureCollection' as const,
+      features: [
+        {
+          type: 'Feature' as const,
+          geometry: {
+            type: 'Point' as const,
+            coordinates: [destination.longitude, destination.latitude],
+          },
+          properties: { id: destination.id },
+        },
+      ],
+    };
+  }, [destination]);
+
+  const pulseScale = useSharedValue(1);
+  const pulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulseScale.value }],
+    opacity: 1 - (pulseScale.value - 1) * 0.65,
+  }));
+
+  const destinationLabel = useMemo(() => {
+    if (!destination) return '';
+    const text = destination.address || destination.name;
+    return text.length > 45 ? `${text.slice(0, 45).trim()}...` : text;
+  }, [destination]);
+
+  useEffect(() => {
+    if (destination) {
+      setDestinationInfoOpen(false);
+      pulseScale.value = withRepeat(
+        withSequence(
+          withTiming(1.85, { duration: 1100 }),
+          withTiming(1, { duration: 500 }),
+        ),
+        -1,
+        false,
+      );
+    } else {
+      pulseScale.value = 1;
+      setDestinationInfoOpen(false);
+    }
+  }, [destination, pulseScale]);
+
+  const centerCameraOn = useCallback(
+    (lat: number, lng: number, zoom = 15) => {
+      cameraRef.current?.setCamera({
+        centerCoordinate: [lng, lat],
+        zoomLevel: zoom,
+        pitch: DEFAULT_PITCH,
+        heading: DEFAULT_BEARING,
+        animationDuration: 650,
+      });
+    },
+    [],
+  );
+
   // ─── Search handlers ────────────────────────────────
   const handleSearchChange = useCallback(
     (text: string) => {
@@ -209,9 +273,13 @@ export default function MapScreen() {
     async (result: SearchResult) => {
       setDestination(result);
       setIsSearchOpen(false);
-      setSearchQuery('');
+      setSearchQuery(result.name);
       clearResults();
       Keyboard.dismiss();
+
+      // center the camera on selected destination but do not restrict navigation.
+      centerCameraOn(result.latitude, result.longitude, 16);
+      setDestinationInfoOpen(true);
 
       if (!coords) return;
 
@@ -224,8 +292,8 @@ export default function MapScreen() {
 
       if (plan) {
         setFlowState('preview');
-        // Fly to route bounds
-        fitCameraToBounds(plan);
+        // Keep route visible; no forced camera fit to bounds.
+        // fitCameraToBounds(plan);
       }
     },
     [coords, calculateRoute, clearResults],
@@ -400,6 +468,7 @@ export default function MapScreen() {
             pitch: DEFAULT_PITCH,
             heading: DEFAULT_BEARING,
           }}
+          followUserLocation={false}
         />
 
         {/* User location */}
@@ -433,6 +502,12 @@ export default function MapScreen() {
             }}
           />
         </MapLibreGL.ShapeSource>
+
+        <DestinationMarker
+          destination={destination}
+          destinationInfoOpen={destinationInfoOpen}
+          setDestinationInfoOpen={setDestinationInfoOpen}
+        />
 
         {/* Route lines */}
         {routeGeoJSON && (
@@ -496,8 +571,7 @@ export default function MapScreen() {
             className="absolute left-5 right-5"
             style={{ top: insets.top + 20 }}
           >
-            <Pressable
-              onPress={() => setIsSearchOpen(true)}
+            <View
               className="flex-row items-center rounded-pill px-5 py-4"
               style={{
                 backgroundColor: isDark ? colors.surface.dark : colors.surface.DEFAULT,
@@ -515,16 +589,28 @@ export default function MapScreen() {
                 size={20}
                 color={isDark ? colors.text.dark : colors.text.DEFAULT}
               />
-              <Text
-                style={{ color: isDark ? colors.text.darkMuted : colors.text.muted }}
-                className="text-base ml-3 flex-1"
+              <TextInput
+                className="flex-1 ml-3"
+                style={{
+                  color: isDark ? colors.text.dark : colors.text.DEFAULT,
+                  paddingVertical: 0,
+                  fontSize: 16,
+                }}
+                placeholder="Where are you going?"
+                placeholderTextColor={isDark ? colors.text.darkMuted : colors.text.muted}
+                value={searchQuery}
+                onChangeText={handleSearchChange}
+                onFocus={() => setIsSearchOpen(true)}
+                returnKeyType="search"
+              />
+              <Pressable
+                onPress={() => setIsSearchOpen(true)}
+                className="w-8 h-8 rounded-full items-center justify-center"
+                style={{ backgroundColor: colors.primary.DEFAULT }}
               >
-                Where are you going?
-              </Text>
-              <View className="w-8 h-8 bg-primary rounded-full items-center justify-center">
                 <Ionicons name="arrow-forward" size={16} color="#fff" />
-              </View>
-            </Pressable>
+              </Pressable>
+            </View>
           </Animated.View>
 
           {/* Current location card */}
@@ -872,3 +958,64 @@ export default function MapScreen() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  destinationPulse: {
+    position: 'absolute',
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: 'rgba(137,92,154,0.22)',
+  },
+  destinationDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: colors.secondary,
+    borderColor: '#fff',
+    borderWidth: 2,
+  },
+  destinationAnnotationContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  destinationBubbleWrapper: {
+    position: 'absolute',
+    bottom: 52,
+    left: -80,
+    width: 200,
+    alignItems: 'center',
+    pointerEvents: 'none',
+  },
+  destinationBubbleVisible: {
+    opacity: 1,
+  },
+  destinationBubbleHidden: {
+    opacity: 0,
+  },
+  destinationBubble: {
+    maxWidth: 190,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(44,39,63,0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  destinationBubbleTitle: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  destinationBubbleText: {
+    color: '#EAEAFB',
+    fontSize: 11,
+    marginBottom: 4,
+  },
+  destinationBubbleHint: {
+    color: '#BEBDE7',
+    fontSize: 10,
+    marginTop: 2,
+  },
+});

@@ -37,7 +37,14 @@ export class AuthService extends BaseService {
         };
       }
 
-      const userRole = data.user.app_metadata?.role as UserRole | undefined;
+      // Fetch user role from profiles table
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      const userRole = profile?.role as UserRole | undefined;
 
       return { success: true, userRole };
     } catch (_) {
@@ -77,7 +84,14 @@ export class AuthService extends BaseService {
         };
       }
 
-      const userRole = user.app_metadata?.role as UserRole | undefined;
+      // Fetch user role from profiles table
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      const userRole = profile?.role as UserRole | undefined;
       const userRoles: string[] = userRole ? [userRole] : [];
 
       if (requiredRoles.length === 0) {

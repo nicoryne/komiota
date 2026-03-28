@@ -59,7 +59,7 @@ export default async function BusStopDetailPage({
               <div>
                 <label className="text-sm font-medium text-gray-600">Status</label>
                 <div className="mt-1">
-                  <StatusBadge status={busStop.status} />
+                  <StatusBadge status={busStop.status as 'pending' | 'approved' | 'rejected'} />
                 </div>
               </div>
               <div>

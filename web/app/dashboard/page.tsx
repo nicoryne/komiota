@@ -32,7 +32,7 @@ export default async function DashboardOverview() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-3xl font-bold text-[#1C1A22]">Dashboard Overview</h1>
+        <h1 className="text-3xl font-bold text-deep-amethyst">Dashboard Overview</h1>
         <p className="text-gray-600 mt-1">Welcome to the Komiota management dashboard</p>
       </div>
 
@@ -50,7 +50,7 @@ export default async function DashboardOverview() {
 
       {/* Recent Pending Stops */}
       <div className="bg-white rounded-[16px] border border-gray-200 p-6">
-        <h2 className="text-xl font-semibold text-[#1C1A22] mb-4">
+        <h2 className="text-xl font-semibold text-deep-amethyst mb-4">
           Recent Pending Submissions
         </h2>
 
@@ -66,14 +66,14 @@ export default async function DashboardOverview() {
                 className="flex items-center justify-between p-4 bg-[#FAFAFA] rounded-[12px] hover:bg-gray-100 transition-colors"
               >
                 <div className="flex flex-col gap-1">
-                  <p className="font-medium text-[#1C1A22]">{stop.name}</p>
+                  <p className="font-medium text-deep-amethyst">{stop.name}</p>
                   <p className="text-sm text-gray-600">
                     Submitted {new Date(stop.created_at!).toLocaleDateString()}
                   </p>
                 </div>
                 <a
                   href={`/dashboard/bus-stops/${stop.id}`}
-                  className="text-sm text-[#4627b6] hover:underline font-medium"
+                  className="text-sm text-plum-builder hover:underline font-medium"
                 >
                   Review →
                 </a>

@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import type { Tables, InsertDto, Enums } from '../lib/types';
+import { useCallback, useEffect, useState } from 'react';
+import type { Enums, Tables } from '../lib/types';
 import * as tripService from '../services/trips';
 
 export function useTrip(userId: string | undefined) {
@@ -23,10 +23,19 @@ export function useTrip(userId: string | undefined) {
 
   const startTrip = useCallback(
     async (
-      data: Pick<InsertDto<'user_trips'>, 'route_id' | 'origin_stop_id' | 'destination_stop_id'>,
+      data: {
+        route_id: string;
+        origin_stop_id: string;
+        destination_stop_id: string;
+      },
     ) => {
       if (!userId) return;
-      const trip = await tripService.startTrip({ ...data, profile_id: userId });
+      const trip = await tripService.startTrip({
+        route_id: data.route_id,
+        origin_stop_id: data.origin_stop_id,
+        destination_stop_id: data.destination_stop_id,
+        profile_id: userId,
+      });
       setActiveTrip(trip);
       return trip;
     },
@@ -44,9 +53,20 @@ export function useTrip(userId: string | undefined) {
   );
 
   const sendPing = useCallback(
-    async (ping: Omit<InsertDto<'trip_pings'>, 'trip_id'>) => {
+    async (ping: {
+      latitude: number;
+      longitude: number;
+      speed?: number | null;
+      heading?: number | null;
+    }) => {
       if (!activeTrip) return;
-      await tripService.insertTripPing({ ...ping, trip_id: activeTrip.id });
+      await tripService.insertTripPing({
+        trip_id: activeTrip.id,
+        latitude: ping.latitude,
+        longitude: ping.longitude,
+        speed: ping.speed,
+        heading: ping.heading,
+      });
     },
     [activeTrip],
   );
